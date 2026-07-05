@@ -1,75 +1,75 @@
 # Orchestra Agents
 
-Framework modular para el diseno, ejecucion y orquestacion de sistemas multi-agente autonomos basados en la metodologia de razonamiento ReAct (Reasoning and Acting). El sistema permite coordinar multiples agentes con roles de especialidad diferenciados (investigadores, redactores, programadores), facilitando la resolucion colaborativa de metas complejas mediante delegacion estructurada y transferencia dinamica de contexto (Message Passing).
+Modular framework for designing, executing, and orchestrating autonomous multi-agent systems based on the ReAct (Reasoning and Acting) reasoning methodology. The system allows coordinating multiple agents with differentiated specialty roles (researchers, writers, programmers), enabling collaborative resolution of complex goals through structured delegation and dynamic context transfer (Message Passing).
 
-## Arquitectura de Multi-Agentes y Razonamiento ReAct
+## Multi-Agent Architecture and ReAct Reasoning
 
-El framework se compone de dos abstracciones nucleares: la ejecucion de la logica individual de cada agente y la coordinacion centralizada del equipo de trabajo.
+The framework is made up of two core abstractions: the execution of each agent's individual logic and the centralized coordination of the working team.
 
 ```mermaid
 graph TD
-    UserGoal[Meta Global del Usuario] --> Supervisor[AgentOrchestrator]
+    UserGoal[User's Global Goal] --> Supervisor[AgentOrchestrator]
     
-    subgraph Orquestacion de Tareas
-        Supervisor --> Plan[Planificador: Generar Pasos de Delegacion]
-        Plan --> Step1[Subtarea 1: ResearcherAgent]
-        Step1 -->|Ejecutar Bucle ReAct| Step1React[Logica Interna ReAct]
-        Step1React -->|Observacion / Resultado| Reg[Registro de Resultados]
-        Reg -->|Inyeccion de Contexto| Step2[Subtarea 2: WriterAgent]
-        Step2 -->|Ejecutar Bucle ReAct| Step2React[Logica Interna ReAct]
-        Step2React -->|Observacion / Resultado| Reg
+    subgraph Task Orchestration
+        Supervisor --> Plan[Planner: Generate Delegation Steps]
+        Plan --> Step1[Subtask 1: ResearcherAgent]
+        Step1 -->|Run ReAct Loop| Step1React[Internal ReAct Logic]
+        Step1React -->|Observation / Result| Reg[Results Log]
+        Reg -->|Context Injection| Step2[Subtask 2: WriterAgent]
+        Step2 -->|Run ReAct Loop| Step2React[Internal ReAct Logic]
+        Step2React -->|Observation / Result| Reg
     end
     
-    Reg --> FinalOutput[Resumen Consolidado Final]
+    Reg --> FinalOutput[Final Consolidated Summary]
 ```
 
-### 1. El Bucle de Razonamiento ReAct (Reasoning + Acting)
+### 1. The ReAct Reasoning Loop (Reasoning + Acting)
 
-Cada agente de tipo `AutonomousAgent` mantiene un bucle iterativo controlado por prompts estructurados que alternan pasos de analisis reflexivo y ejecucion practica:
+Each `AutonomousAgent`-type agent maintains an iterative loop controlled by structured prompts that alternate between reflective analysis steps and practical execution:
 
-1.  **Pensamiento (Thought):** El agente reflexiona sobre la tarea actual y determina el siguiente paso logico o la necesidad de consultar datos externos.
-2.  **Accion (Action):** El agente selecciona una herramienta registrada en su catalogo e invoca su ejecucion pasando argumentos especificos:
-    $$\text{Formato de Salida:} \quad \text{Action: } \text{nombre\_herramienta}(\text{"argumento"})$$
-3.  **Observacion (Observation):** El framework intercepta la llamada, ejecuta el callback de Python asociado y devuelve el resultado textual al agente como una nueva entrada contextual.
+1.  **Thought:** The agent reflects on the current task and determines the next logical step or the need to query external data.
+2.  **Action:** The agent selects a tool registered in its catalog and invokes it, passing specific arguments:
+    $$\text{Output Format:} \quad \text{Action: } \text{tool\_name}(\text{"argument"})$$
+3.  **Observation:** The framework intercepts the call, executes the associated Python callback, and returns the textual result to the agent as a new contextual input.
 
-La secuencia se repite recursivamente hasta que el agente detecta que dispone de informacion suficiente para redactar la solucion, emitiendo una respuesta con el formato `"Final Answer: <respuesta>"`.
+The sequence repeats recursively until the agent determines it has enough information to write the solution, emitting a response in the format `"Final Answer: <answer>"`.
 
-#### Parser de Patrones ReAct
-El parser de salida analiza las generaciones mediante expresiones regulares compiladas:
-*   *Filtro de Pensamiento:* `Thought:\s*(.*?)(?=(?:Action:|Final Answer:|$))` (captura el scratchpad de razonamiento).
-*   *Filtro de Accion:* `Action:\s*(\w+)\((.*?)\)` (captura el nombre de la herramienta y sus argumentos).
-*   *Filtro de Conclusion:* `Final Answer:\s*(.*)` (detiene el bucle y devuelve el resultado).
+#### ReAct Pattern Parser
+The output parser analyzes generations using compiled regular expressions:
+*   *Thought filter:* `Thought:\s*(.*?)(?=(?:Action:|Final Answer:|$))` (captures the reasoning scratchpad).
+*   *Action filter:* `Action:\s*(\w+)\((.*?)\)` (captures the tool name and its arguments).
+*   *Conclusion filter:* `Final Answer:\s*(.*)` (stops the loop and returns the result).
 
-### 2. Orquestacion y Message Passing (Paso de Mensajes)
+### 2. Orchestration and Message Passing
 
-La clase `AgentOrchestrator` actua como un supervisor central que coordina la descomposicion de problemas complejos.
+The `AgentOrchestrator` class acts as a central supervisor that coordinates the decomposition of complex problems.
 
-*   **Descomposicion del Grafo de Tareas:** La meta global es traducida a una secuencia ordenada de subtareas (`TaskDelegation`), donde cada una define el agente asignado y los identificadores de las tareas previas de las que depende (`dependencies`).
-*   **Alineacion de Contexto (Message Passing):** Al iniciar un paso del plan, el orquestador recupera las respuestas del registro historico correspondientes a las dependencias declaradas. Estos datos se inyectan en el prompt del agente asignado con etiquetas de apoyo (`[Resultado Tarea X]: ...`), garantizando la continuidad cognitiva.
+*   **Task Graph Decomposition:** The global goal is translated into an ordered sequence of subtasks (`TaskDelegation`), where each one defines the assigned agent and the identifiers of the prior tasks it depends on (`dependencies`).
+*   **Context Alignment (Message Passing):** When starting a plan step, the orchestrator retrieves the historical log responses corresponding to the declared dependencies. This data is injected into the assigned agent's prompt with supporting tags (`[Task X Result]: ...`), ensuring cognitive continuity.
 
-### 3. Simulador Cognitivo Offline
+### 3. Offline Cognitive Simulator
 
-Para evitar bloqueos y el consumo de cuotas de red durante tests automatizados y CI/CD, el framework incluye un simulador de respuestas neuronales offline. Este analiza el contenido de la tarea y la longitud del `scratchpad` del agente, emitiendo trazas artificiales identicas a las que generaria un LLM en produccion para guiar al agente a traves del arbol de llamadas esperado.
+To avoid blocking and network quota consumption during automated tests and CI/CD, the framework includes an offline neural response simulator. It analyzes the task content and the length of the agent's `scratchpad`, emitting artificial traces identical to those a production LLM would generate to guide the agent through the expected call tree.
 
-## Conexión con el Ecosistema
+## Connection to the Ecosystem
 
-Este framework sirve como capa de control logico para el resto del espacio de trabajo:
-1.  **nano-vector-db / hybrid-search-retrieval-pipeline:** Se registran como herramientas del catalogo del agente (ejemplo: `search_db`), permitiendo que el `ResearcherAgent` recupere documentos indexados dinamicamente.
-2.  **llm-inference-server:** De desactivarse el simulador (`use_mock_llm=False`), las solicitudes del bucle ReAct del agente se canalizan mediante peticiones REST al servidor de inferencia local.
-3.  **secure-tool-runtime:** Las herramientas complejas que implican ejecucion de scripts en disco o comandos del sistema se derivan al entorno aislado (Sandbox) para proteger la integridad del sistema operativo.
+This framework serves as the logical control layer for the rest of the workspace:
+1.  **nano-vector-db / hybrid-search-retrieval-pipeline:** Registered as tools in the agent's catalog (e.g. `search_db`), allowing the `ResearcherAgent` to dynamically retrieve indexed documents.
+2.  **llm-inference-server:** If the simulator is disabled (`use_mock_llm=False`), the agent's ReAct loop requests are routed via REST calls to the local inference server.
+3.  **secure-tool-runtime:** Complex tools involving script execution on disk or system commands are routed to the isolated environment (Sandbox) to protect the operating system's integrity.
 
-## Estructura del Proyecto
+## Project Structure
 
-*   `agent.py`: Clase `AutonomousAgent` que implementa el bucle ReAct, el analizador de expresiones de control y el simulador cognitivo local.
-*   `orchestrator.py`: Clase `AgentOrchestrator` y el esquema de datos `TaskDelegation` para administrar planes de colaboracion multi-agente.
-*   `test_agents.py`: Pruebas de integracion que verifican la descomposicion de planes, la inyeccion de dependencias de contexto y la prevencion de bucles infinitos en el ReAct.
-*   `example.py`: Demostracion interactiva que ejecuta a un equipo compuesto por un investigador y un escritor, generando un reporte final en Markdown.
+*   `agent.py`: `AutonomousAgent` class implementing the ReAct loop, the control-expression parser, and the local cognitive simulator.
+*   `orchestrator.py`: `AgentOrchestrator` class and the `TaskDelegation` data schema for managing multi-agent collaboration plans.
+*   `test_agents.py`: Integration tests verifying plan decomposition, context dependency injection, and prevention of infinite loops in the ReAct cycle.
+*   `example.py`: Interactive demo running a team made up of a researcher and a writer, generating a final report in Markdown.
 
-## Instalacion y Ejecucion
+## Installation and Execution
 
-### 1. Configurar Entorno e Instalar Dependencias
+### 1. Set Up the Environment and Install Dependencies
 
-Active el entorno virtual del subproyecto:
+Activate the subproject's virtual environment:
 
 ```bash
 python3 -m venv .venv
@@ -77,20 +77,20 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Ejecutar Pruebas Automatizadas
+### 2. Run Automated Tests
 
-Valide el funcionamiento de las dependencias logicas y la secuenciacion de los agentes:
+Validate the logical dependencies and agent sequencing:
 
 ```bash
 .venv/bin/python -m unittest test_agents.py
 ```
 
-### 3. Ejecutar la Demostracion Multi-Agente
+### 3. Run the Multi-Agent Demo
 
-Inicie el script para visualizar la colaboracion en tiempo real entre agentes especializados:
+Start the script to watch real-time collaboration between specialized agents:
 
 ```bash
 .venv/bin/python example.py
 ```
 
-El script imprimira en consola la bitacora completa de pensamientos, invocaciones de herramientas vectoriales y el informe final consolidado por el agente escritor.
+The script will print to the console the full log of thoughts, vector tool invocations, and the final report consolidated by the writer agent.
