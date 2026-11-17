@@ -1,6 +1,6 @@
 import unittest
-from agent import AutonomousAgent
-from orchestrator import AgentOrchestrator, TaskDelegation
+from orchestra_agents.agent import AutonomousAgent
+from orchestra_agents.orchestrator import AgentOrchestrator, TaskDelegation
 
 
 class TestOrchestraAgents(unittest.TestCase):

@@ -65,6 +65,28 @@ This framework serves as the logical control layer for the rest of the workspace
 *   `test_agents.py`: Integration tests verifying plan decomposition, context dependency injection, and prevention of infinite loops in the ReAct cycle.
 *   `example.py`: Interactive demo running a team made up of a researcher and a writer, generating a final report in Markdown.
 
+## Using it as a package
+
+Since `0.1.0` the code lives in the `orchestra_agents` package and the repository is
+pip-installable, so other projects can depend on it instead of copying files
+or editing `sys.path`:
+
+```bash
+pip install "orchestra-agents @ git+https://github.com/juanmmm21/orchestra-agents.git@v0.1.0"
+```
+
+```python
+from orchestra_agents import AutonomousAgent
+```
+
+The old top-level modules are kept as thin re-exports, so scripts that add
+this folder to `sys.path` keep working. This component imports no other
+ai-core component: they are combined in the `aicore` SDK of
+[ai-core-infra-hub](https://github.com/juanmmm21/ai-core-infra-hub), which
+passes collaborators (vector stores, encoders, tokenizers) in by injection.
+
+Development: `pip install -e ".[dev]"`, then `pytest` and `ruff check .`.
+
 ## Installation and Execution
 
 ### 1. Set Up the Environment and Install Dependencies
