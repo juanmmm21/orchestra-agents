@@ -19,7 +19,7 @@ def run_demo() -> None:
         return "No se encontraron registros sobre esta consulta."
 
     def write_markdown_report(content: str) -> str:
-        print(f"  [TOOL EXECUTION] write_report('...')...")
+        print("  [TOOL EXECUTION] write_report('...')...")
         return (
             f"### INFORME TECNICO OFICIAL\n"
             f"Consolidado de infraestructura: {content}\n"
